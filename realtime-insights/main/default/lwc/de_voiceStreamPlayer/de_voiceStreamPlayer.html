@@ -1,0 +1,131 @@
+<template>
+    <lightning-card title="Real-Time Voice Translator" icon-name="utility:world">
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+
+            <!-- Error -->
+            <template lwc:if={hasError}>
+                <div class="error-bar slds-m-bottom_small">
+                    <lightning-icon icon-name="utility:error" size="x-small" class="error-icon"></lightning-icon>
+                    <span>{errorMessage}</span>
+                </div>
+            </template>
+
+            <!-- Controls -->
+            <div class="controls-row slds-m-bottom_small">
+                <div class="control-item">
+                    <lightning-combobox
+                        label="Source Language"
+                        value={selectedLanguage}
+                        options={languageOptions}
+                        onchange={handleLanguageChange}
+                        variant="label-stacked"
+                        disabled={isStreaming}>
+                    </lightning-combobox>
+                </div>
+                <div class="control-item">
+                    <lightning-button
+                        variant={recordButtonVariant}
+                        label={recordButtonLabel}
+                        icon-name={recordButtonIcon}
+                        onclick={handleToggleStream}>
+                    </lightning-button>
+                </div>
+                <div class="control-item">
+                    <template lwc:if={isStreaming}>
+                        <div class="recording-indicator">
+                            <span class="recording-dot"></span>
+                            <lightning-badge label={formattedDuration} class="slds-badge_inverse"></lightning-badge>
+                        </div>
+                    </template>
+                </div>
+                <div class="control-item">
+                    <lightning-button
+                        variant={ttsButtonVariant}
+                        label={ttsButtonLabel}
+                        icon-name={ttsButtonIcon}
+                        onclick={handleToggleTts}>
+                    </lightning-button>
+                </div>
+                <div class="control-item">
+                    <lightning-button
+                        label="Clear"
+                        icon-name="utility:delete"
+                        onclick={handleClear}>
+                    </lightning-button>
+                </div>
+            </div>
+
+            <!-- VF iframe — hidden but functional -->
+            <iframe src={vfPageUrl} class="vf-iframe" title="Azure Translation Stream" allow="microphone *"></iframe>
+
+            <!-- Two-panel layout: Source | Translation -->
+            <div class="panels-grid">
+                <!-- Left: Source language -->
+                <div class="panel-wrapper">
+                    <div class="panel-container">
+                        <div class="panel-header">
+                            <lightning-icon icon-name="utility:microphone" size="x-small"></lightning-icon>
+                            <span class="slds-m-left_x-small panel-title">{sourcePanelTitle}</span>
+                        </div>
+                        <div class="transcript-body">
+                            <template lwc:if={hasTranscript}>
+                                <template for:each={sourceLines} for:item="line">
+                                    <div key={line.id} class="transcript-line final">
+                                        <span class="timestamp">{line.timestamp}</span>
+                                        <template lwc:if={line.lang}>
+                                            <span class="lang-tag">{line.lang}</span>
+                                        </template>
+                                        <span class="text">{line.text}</span>
+                                    </div>
+                                </template>
+                                <template lwc:if={interimSource}>
+                                    <div class="transcript-line interim">
+                                        <span class="text">{interimSource}</span>
+                                    </div>
+                                </template>
+                            </template>
+                            <template lwc:if={noTranscript}>
+                                <div class="placeholder-text">
+                                    Speak in {selectedLanguageLabel} to see transcription...
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: English translation -->
+                <div class="panel-wrapper">
+                    <div class="panel-container">
+                        <div class="panel-header">
+                            <lightning-icon icon-name="utility:world" size="x-small"></lightning-icon>
+                            <span class="slds-m-left_x-small panel-title">English (Translation)</span>
+                            <template lwc:if={isSpeaking}>
+                                <lightning-icon icon-name="utility:volume_high" size="x-small" class="slds-m-left_small speaking-icon"></lightning-icon>
+                            </template>
+                        </div>
+                        <div class="transcript-body">
+                            <template lwc:if={hasTranscript}>
+                                <template for:each={translatedLines} for:item="line">
+                                    <div key={line.id} class="transcript-line final">
+                                        <span class="timestamp">{line.timestamp}</span>
+                                        <span class="text">{line.text}</span>
+                                    </div>
+                                </template>
+                                <template lwc:if={interimTranslated}>
+                                    <div class="transcript-line interim">
+                                        <span class="text">{interimTranslated}</span>
+                                    </div>
+                                </template>
+                            </template>
+                            <template lwc:if={noTranscript}>
+                                <div class="placeholder-text">
+                                    English translation will appear here...
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses><apexClass>de_AgentService</apexClass><enabled>true</enabled></classAccesses>
+    <classAccesses><apexClass>de_AzureSpeechService</apexClass><enabled>true</enabled></classAccesses>
+    <classAccesses><apexClass>de_BhashiniService</apexClass><enabled>true</enabled></classAccesses>
+    <classAccesses><apexClass>de_InsightService</apexClass><enabled>true</enabled></classAccesses>
+    <classAccesses><apexClass>de_TranscriptAnalysisAction</apexClass><enabled>true</enabled></classAccesses>
+    <externalCredentialPrincipalAccesses>
+        <enabled>true</enabled>
+        <externalCredentialPrincipal>Agent_API_EC-Agent_API_Principal</externalCredentialPrincipal>
+    </externalCredentialPrincipalAccesses>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Voice Insights Access</label>
+    <pageAccesses><apexPage>de_BhashiniStreamPage</apexPage><enabled>true</enabled></pageAccesses>
+    <tabSettings><tab>de_Voice_Insights</tab><visibility>Visible</visibility></tabSettings>
+</PermissionSet>

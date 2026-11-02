@@ -1,0 +1,9 @@
+{
+  "name": "Voice Realtime Insights",
+  "short_name": "VRI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#0d1526",
+  "description": "Real-time voice transcription, translation, and PD analysis"
+}

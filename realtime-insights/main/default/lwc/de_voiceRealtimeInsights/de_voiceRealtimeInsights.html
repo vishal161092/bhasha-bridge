@@ -1,0 +1,323 @@
+<template>
+    <div class="outer-wrapper">
+        <!-- EXTREME LEFT: Contact 360 Card (full height) -->
+        <div class="c360-sidebar">
+            <c-de_contact360-card record-id={contactId}></c-de_contact360-card>
+        </div>
+
+        <!-- RIGHT SECTION: Header + Controls + 3 Panels -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-left">
+                    <lightning-icon icon-name="utility:voice_mode" size="small" class="header-icon"></lightning-icon>
+                    <span class="header-title">Voice Realtime Insights</span>
+                </div>
+                <div class="header-right">
+                    <lightning-combobox
+                        label="Language"
+                        value={selectedLanguage}
+                        options={languageOptions}
+                        variant="label-hidden"
+                        class="lang-picker"
+                        onchange={handleLanguageChange}>
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <lightning-radio-group
+                    name="asrEngine"
+                    label="ASR Engine"
+                    options={asrEngineOptions}
+                    value={selectedEngine}
+                    type="button"
+                    variant="label-hidden"
+                    onchange={handleEngineChange}
+                    class="engine-toggle">
+                </lightning-radio-group>
+                <lightning-button
+                    variant={recordButtonVariant}
+                    label={recordButtonLabel}
+                    icon-name={recordButtonIcon}
+                    onclick={handleRecordToggle}
+                    class="record-btn">
+                </lightning-button>
+                <lightning-button
+                    variant="neutral"
+                    label="Clear"
+                    icon-name="utility:delete"
+                    onclick={handleClear}
+                    class="clear-btn">
+                </lightning-button>
+                <template if:true={isRecording}>
+                    <div class="recording-indicator">
+                        <span class="pulse-dot"></span>
+                        <span class="rec-label">Recording...</span>
+                        <span class="duration">{formattedDuration}</span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Error Message -->
+            <template if:true={hasError}>
+                <div class="error-bar">
+                    <lightning-icon icon-name="utility:error" size="x-small" class="error-icon"></lightning-icon>
+                    <span>{errorMessage}</span>
+                </div>
+            </template>
+
+            <!-- Three Panel Content Area -->
+            <div class="panels three-col">
+                <!-- LEFT: Transcript + Translation stacked -->
+                <div class="panel transcript-panel stacked-panel">
+                    <!-- Native Transcript (top) -->
+                    <div class="sub-panel">
+                        <div class="panel-header">
+                            <lightning-icon icon-name="utility:display_text" size="xx-small"></lightning-icon>
+                            <span class="panel-title">Native Transcript</span>
+                            <template if:true={isTranscribing}>
+                                <lightning-spinner size="x-small" class="inline-spinner"></lightning-spinner>
+                            </template>
+                        </div>
+                        <div class="panel-body transcript-body">
+                            <template if:true={hasTranscript}>
+                                <template for:each={transcriptLines} for:item="line">
+                                    <div key={line.id} class={line.cssClass}>
+                                        <span class="line-time">{line.timestamp}</span>
+                                        <span class="line-text">{line.text}</span>
+                                    </div>
+                                </template>
+                                <template if:true={interimText}>
+                                    <div class="transcript-line interim">
+                                        <span class="line-text">{interimText}</span>
+                                    </div>
+                                </template>
+                            </template>
+                            <template if:false={hasTranscript}>
+                                <div class="empty-state">
+                                    <lightning-icon icon-name="utility:microphone" size="large" class="empty-icon"></lightning-icon>
+                                    <p>Click <strong>Start Recording</strong> to begin transcription</p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- English Translation (bottom) -->
+                    <div class="sub-panel">
+                        <div class="panel-header">
+                            <lightning-icon icon-name="utility:world" size="xx-small"></lightning-icon>
+                            <span class="panel-title">English Translation</span>
+                        </div>
+                        <div class="panel-body translation-body">
+                            <template if:true={hasTranslation}>
+                                <template for:each={translationLines} for:item="line">
+                                    <div key={line.id} class={line.cssClass}>
+                                        <span class="line-time">{line.timestamp}</span>
+                                        <span class="line-text">{line.text}</span>
+                                    </div>
+                                </template>
+                            </template>
+                            <template if:false={hasTranslation}>
+                                <div class="empty-state">
+                                    <lightning-icon icon-name="utility:world" size="large" class="empty-icon"></lightning-icon>
+                                    <p>English translation will appear here</p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CENTER: PD Questions -->
+                <div class="panel questions-panel">
+                    <div class="panel-header">
+                        <lightning-icon icon-name="utility:checklist" size="xx-small"></lightning-icon>
+                        <span class="panel-title">PD Questions</span>
+                        <template if:true={pdOccupation}>
+                            <span class="occupation-badge">{pdOccupation}</span>
+                        </template>
+                    </div>
+                    <template if:true={isLoadingQuestions}>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill"></div>
+                            </div>
+                            <span class="progress-label">Loading questions...</span>
+                        </div>
+                    </template>
+                    <div class="panel-body questions-body">
+                        <template if:true={hasQuestions}>
+                            <template for:each={pdQuestions} for:item="q">
+                                <div key={q.id} class={q.cssClass}>
+                                    <span class="question-number">{q.sequence}.</span>
+                                    <span class="question-text">{q.question}</span>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={hasQuestions}>
+                            <template if:false={isLoadingQuestions}>
+                                <div class="empty-state">
+                                    <lightning-icon icon-name="utility:checklist" size="large" class="empty-icon"></lightning-icon>
+                                    <p>No questions available</p>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Agent Analysis + Contact Form -->
+                <div class="panel contact-panel">
+                    <!-- Agent Analysis Expandable Section -->
+                    <div class="agent-section">
+                        <div class="agent-header" onclick={handleAgentToggle}>
+                            <lightning-icon icon-name="utility:einstein" size="xx-small"></lightning-icon>
+                            <span class="agent-title">Agent Analysis</span>
+                            <lightning-icon
+                                icon-name={agentChevronIcon}
+                                size="xx-small"
+                                class="chevron-icon">
+                            </lightning-icon>
+                        </div>
+                        <template if:true={isAgentExpanded}>
+                            <div class="agent-body">
+                                <template if:true={isAgentLoading}>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar-track">
+                                            <div class="progress-bar-fill"></div>
+                                        </div>
+                                        <span class="progress-label">Agent processing transcript...</span>
+                                    </div>
+                                </template>
+                                <template if:false={isAgentLoading}>
+                                    <template if:true={hasAgentResult}>
+                                        <div class="agent-response">
+                                            <!-- Summary Header -->
+                                            <div class="agent-summary-bar">
+                                                <span class="agent-occ-badge">{agentOccupation}</span>
+                                                <div class="agent-stats">
+                                                    <span class="stat-covered">{agentCoveredCount} Covered</span>
+                                                    <span class="stat-pending">{agentPendingCount} Pending</span>
+                                                    <span class="stat-total">/ {agentTotalCount}</span>
+                                                </div>
+                                                <lightning-button-icon
+                                                    icon-name="utility:refresh"
+                                                    variant="bare-inverse"
+                                                    alternative-text="Re-run Agent"
+                                                    onclick={handleRunAgent}
+                                                    class="agent-rerun-btn">
+                                                </lightning-button-icon>
+                                            </div>
+
+                                            <!-- Covered Questions -->
+                                            <template if:true={hasCoveredItems}>
+                                                <div class="agent-section-block covered-block">
+                                                    <div class="agent-section-header covered-header">
+                                                        <lightning-icon icon-name="utility:success" size="xx-small" class="icon-covered"></lightning-icon>
+                                                        <span>Covered</span>
+                                                    </div>
+                                                    <template for:each={agentCoveredItems} for:item="item">
+                                                        <div key={item.id} class="agent-q-item">
+                                                            <span class="agent-q-num covered-num">{item.sequence}.</span>
+                                                            <div class="agent-q-content">
+                                                                <span class="agent-q-text">{item.question}</span>
+                                                                <template if:true={item.evidence}>
+                                                                    <span class="agent-q-evidence">{item.evidence}</span>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+
+                                            <!-- Pending Questions -->
+                                            <template if:true={hasPendingItems}>
+                                                <div class="agent-section-block pending-block">
+                                                    <div class="agent-section-header pending-header">
+                                                        <lightning-icon icon-name="utility:clock" size="xx-small" class="icon-pending"></lightning-icon>
+                                                        <span>Pending</span>
+                                                    </div>
+                                                    <template for:each={agentPendingItems} for:item="item">
+                                                        <div key={item.id} class="agent-q-item pending-q-item">
+                                                            <span class="agent-q-num pending-num">{item.sequence}.</span>
+                                                            <span class="agent-q-text">{item.question}</span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+
+                                        </div>
+                                    </template>
+                                    <!-- Fallback for non-structured response -->
+                                    <template if:false={hasAgentResult}>
+                                        <template if:true={agentResponse}>
+                                            <div class="agent-response">
+                                                <pre class="agent-response-text">{agentResponse}</pre>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:false={agentResponse}>
+                                        <lightning-button
+                                            variant="brand"
+                                            label="Run Agent Analysis"
+                                            icon-name="utility:einstein"
+                                            onclick={handleRunAgent}
+                                            class="run-agent-btn">
+                                        </lightning-button>
+                                        <p class="agent-hint">Sends the transcript to the PD Agent for analysis</p>
+                                    </template>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="panel-header">
+                        <lightning-icon icon-name="standard:contact" size="xx-small"></lightning-icon>
+                        <span class="panel-title">Contact Details</span>
+                    </div>
+                    <div class="panel-body contact-body">
+                        <template if:true={isLoadingQuestions}>
+                            <div class="fields-loading">
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-track">
+                                        <div class="progress-bar-fill"></div>
+                                    </div>
+                                    <span class="progress-label">Fetching underwriting fields...</span>
+                                </div>
+                            </div>
+                        </template>
+                        <template if:true={hasOccupationFields}>
+                            <lightning-record-edit-form
+                                record-id={formRecordId}
+                                object-api-name="Contact"
+                                onsuccess={handleContactSaveSuccess}
+                                onerror={handleContactSaveError}>
+                                <div class="form-grid">
+                                    <template for:each={occupationFields} for:item="fieldName">
+                                        <lightning-input-field key={fieldName} field-name={fieldName}></lightning-input-field>
+                                    </template>
+                                </div>
+                            </lightning-record-edit-form>
+                            <div class="save-btn-container">
+                                <lightning-button
+                                    variant="brand"
+                                    label="Save"
+                                    onclick={handleSaveContact}
+                                    class="save-btn-bottom">
+                                </lightning-button>
+                            </div>
+                        </template>
+                        <template if:false={hasOccupationFields}>
+                            <template if:false={isLoadingQuestions}>
+                                <div class="empty-state">
+                                    <lightning-icon icon-name="utility:form" size="large" class="empty-icon"></lightning-icon>
+                                    <p>Fields will appear based on occupation</p>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

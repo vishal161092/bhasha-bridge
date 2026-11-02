@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Default</label>
+    <protected>false</protected>
+    <values>
+        <field>User_ID__c</field>
+        <value xsi:type="xsd:string">-</value>
+    </values>
+    <values>
+        <field>Azure_Key__c</field>
+        <value xsi:type="xsd:string">REPLACE_ME</value>
+    </values>
+    <values>
+        <field>Azure_Region__c</field>
+        <value xsi:type="xsd:string">eastus</value>
+    </values>
+    <values>
+        <field>ASF_Endpoint__c</field>
+        <value xsi:type="xsd:string">wss://REPLACE_ME/transcribe/v1/tenant/stream</value>
+    </values>
+    <values>
+        <field>ASF_Token__c</field>
+        <value xsi:type="xsd:string">SESSION_ID</value>
+    </values>
+</CustomMetadata>

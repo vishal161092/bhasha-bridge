@@ -1,0 +1,123 @@
+<template>
+    <div class="card">
+        <template if:true={hasData}>
+            <!-- Avatar + Name -->
+            <div class="profile-header">
+                <div class="avatar">{initials}</div>
+                <div class="profile-name">{contactData.name}</div>
+                <template if:true={contactData.title}>
+                    <div class="profile-title">{contactData.title}</div>
+                </template>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="info-section">
+                <template if:true={contactData.email}>
+                    <div class="info-row">
+                        <lightning-icon icon-name="utility:email" size="xx-small" class="info-icon"></lightning-icon>
+                        <span class="info-label">Email</span>
+                        <span class="info-value">{contactData.email}</span>
+                    </div>
+                </template>
+                <template if:true={contactData.phone}>
+                    <div class="info-row">
+                        <lightning-icon icon-name="utility:call" size="xx-small" class="info-icon"></lightning-icon>
+                        <span class="info-label">Phone</span>
+                        <span class="info-value">{contactData.phone}</span>
+                    </div>
+                </template>
+                <template if:true={fullAddress}>
+                    <div class="info-row">
+                        <lightning-icon icon-name="utility:location" size="xx-small" class="info-icon"></lightning-icon>
+                        <span class="info-label">Address</span>
+                        <span class="info-value">{fullAddress}</span>
+                    </div>
+                </template>
+                <template if:true={contactData.accountName}>
+                    <div class="info-row">
+                        <lightning-icon icon-name="utility:company" size="xx-small" class="info-icon"></lightning-icon>
+                        <span class="info-label">Account</span>
+                        <span class="info-value">{contactData.accountName}</span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Badges -->
+            <template if:true={hasBadges}>
+                <div class="badges-section">
+                    <template for:each={badges} for:item="badge">
+                        <span key={badge} class="badge">{badge}</span>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Quick Stats -->
+            <div class="stats-section">
+                <div class="stats-header">Quick Stats</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">DOB</span>
+                        <span class="stat-val">15 Mar 1989</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Gender</span>
+                        <span class="stat-val">Male</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Annual Income</span>
+                        <span class="stat-val">&#8377;18.5L</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Customer Since</span>
+                        <span class="stat-val">2021</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Policies</span>
+                        <span class="stat-val">2 Active</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Sum Assured</span>
+                        <span class="stat-val">&#8377;50L</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Score -->
+            <div class="risk-section">
+                <div class="risk-header">
+                    <span class="risk-title">Risk Score</span>
+                    <span class="risk-value risk-low">Low</span>
+                </div>
+                <div class="risk-bar-track">
+                    <div class="risk-bar-fill"></div>
+                </div>
+                <div class="risk-labels">
+                    <span>Low</span>
+                    <span>Med</span>
+                    <span>High</span>
+                </div>
+            </div>
+
+            <!-- Powered By -->
+            <div class="powered-section">
+                <span class="powered-label">Data Cloud 360</span>
+                <lightning-icon icon-name="utility:connected_apps" size="xx-small" class="powered-icon"></lightning-icon>
+            </div>
+        </template>
+
+        <template if:false={hasData}>
+            <template if:true={hasError}>
+                <div class="empty-state">
+                    <lightning-icon icon-name="utility:error" size="large" class="error-icon"></lightning-icon>
+                    <p>Unable to load contact</p>
+                </div>
+            </template>
+            <template if:false={hasError}>
+                <div class="empty-state">
+                    <lightning-icon icon-name="standard:contact" size="large" class="loading-icon"></lightning-icon>
+                    <p>Loading contact 360...</p>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>

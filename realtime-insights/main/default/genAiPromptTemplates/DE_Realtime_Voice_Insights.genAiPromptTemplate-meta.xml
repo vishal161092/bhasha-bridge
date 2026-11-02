@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <developerName>DE_Realtime_Voice_Insights</developerName>
+    <masterLabel>DE Realtime Voice Insights</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>You are a real-time conversation analyst. You receive a live transcription of an ongoing conversation and must provide structured insights.
+
+TRANSCRIPTION:
+{!$Input:transcription}
+
+=====================================================
+INSTRUCTIONS
+=====================================================
+
+Analyze the transcription above and produce insights across the following areas:
+
+1. SUMMARY — A concise 2-3 sentence summary of what has been discussed so far.
+
+2. SENTIMENT — Overall sentiment of the conversation: Positive | Negative | Neutral | Mixed
+
+3. KEY TOPICS — List of 3-5 main topics or themes being discussed.
+
+4. ACTION ITEMS — Any tasks, follow-ups, or commitments mentioned. If none, return an empty array.
+
+5. COACHING TIPS — 2-3 actionable suggestions for the speaker to improve the conversation (communication style, missed opportunities, areas to probe deeper).
+
+=====================================================
+OUTPUT FORMAT (STRICT JSON ONLY)
+=====================================================
+
+Return ONLY valid JSON. No markdown, no explanations, no extra text.
+
+{
+  &quot;summary&quot;: &quot;Concise summary of the conversation so far&quot;,
+  &quot;sentiment&quot;: &quot;Positive | Negative | Neutral | Mixed&quot;,
+  &quot;topics&quot;: [&quot;topic1&quot;, &quot;topic2&quot;, &quot;topic3&quot;],
+  &quot;actionItems&quot;: [&quot;action item 1&quot;, &quot;action item 2&quot;],
+  &quot;coachingTips&quot;: [&quot;tip 1&quot;, &quot;tip 2&quot;]
+}
+</content>
+        <inputs>
+            <apiName>transcription</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>transcription</masterLabel>
+            <referenceName>Input:transcription</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultGPT4Omni</primaryModel>
+        <responseFormat>JSON</responseFormat>
+        <status>Published</status>
+        <versionIdentifier>Cu3aXfPueI55amgg2r/QqvkpVQyUZdkg9/TbyjuLcWQ=_3</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>

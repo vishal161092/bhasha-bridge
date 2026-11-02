@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Bhashini Text to Voice</masterLabel>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__RecordPage,lightning__HomePage">
+            <property name="language" label="Language" type="String" default="hi" datasource="hi,bn,gu,mr,ta,te" description="Language code of the text to speak"/>
+            <property name="inputText" label="Input Text" type="String"/>
+        </targetConfig>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="language" label="Language (hi, bn, gu, mr, ta, te)" type="String" default="hi"/>
+            <property name="inputText" label="Input Text" type="String"/>
+            <property name="audioSrc" label="AudioURL" type="String"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

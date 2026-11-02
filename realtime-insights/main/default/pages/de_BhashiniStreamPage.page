@@ -1,0 +1,247 @@
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false" applyHtmlTag="true" applyBodyTag="true" docType="html-5.0">
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Salesforce Sans', -apple-system, sans-serif;
+            background: #f4f6f9;
+            color: #181818;
+            padding: 12px;
+        }
+        .status {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px; border-radius: 6px;
+            font-size: 13px; font-weight: 500;
+            margin-bottom: 10px;
+        }
+        .status.idle { background: #e8e8e8; color: #666; }
+        .status.connecting { background: #fffbe6; color: #8a6d0b; }
+        .status.connected { background: #e6f9e6; color: #1b5e1b; }
+        .status.error { background: #fde8e8; color: #8c1a1a; }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        .idle .dot { background: #999; animation: none; }
+        .connecting .dot { background: #d4a800; }
+        .connected .dot { background: #2e7d32; }
+        .error .dot { background: #c62828; animation: none; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .info { margin-top: 8px; font-size: 11px; color: #706e6b; }
+    </style>
+</head>
+<body>
+    <div id="status" class="status idle">
+        <span class="dot"></span>
+        <span id="statusText">Idle — waiting for start command</span>
+    </div>
+    <div class="info">
+        Azure Speech Translation + TTS
+    </div>
+
+    <script>
+        var recognizer = null;
+        var synthesizer = null;
+        var sourceLanguage = 'hi-IN';
+        var targetLanguage = 'en';
+        var azureToken = null;
+        var azureRegion = null;
+        var ttsEnabled = true;
+        var ttsQueue = [];
+        var isSpeaking = false;
+        var MAX_QUEUE = 2;
+
+        window.addEventListener('message', function(event) {
+            var data = event.data;
+            if (!data || !data.type) return;
+
+            if (data.type === 'azure-stream-start') {
+                sourceLanguage = data.language || 'hi-IN';
+                targetLanguage = data.targetLanguage || 'en';
+                azureToken = data.azureToken;
+                azureRegion = data.azureRegion;
+                ttsEnabled = data.ttsEnabled !== false;
+                startStreaming();
+            } else if (data.type === 'azure-token-refresh') {
+                azureToken = data.azureToken;
+                if (recognizer) recognizer.authorizationToken = azureToken;
+                if (synthesizer) synthesizer.authorizationToken = azureToken;
+            } else if (data.type === 'azure-stream-stop') {
+                stopStreaming();
+            } else if (data.type === 'azure-tts-toggle') {
+                ttsEnabled = data.enabled;
+            }
+        });
+
+        function setStatus(state, text) {
+            var el = document.getElementById('status');
+            el.className = 'status ' + state;
+            document.getElementById('statusText').textContent = text;
+        }
+
+        function sendToParent(type, payload) {
+            if (window.parent !== window) {
+                payload.type = type;
+                window.parent.postMessage(payload, '*');
+            }
+        }
+
+        function initSynthesizer() {
+            if (synthesizer) return;
+            var speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(azureToken, azureRegion);
+            speechConfig.speechSynthesisVoiceName = 'en-US-JennyNeural';
+            speechConfig.speechSynthesisOutputFormat =
+                SpeechSDK.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+            synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+        }
+
+        function speakText(text) {
+            if (!ttsEnabled || !text || !text.trim()) return;
+            if (ttsQueue.length >= MAX_QUEUE) {
+                ttsQueue = [ttsQueue[ttsQueue.length - 1]];
+            }
+            ttsQueue.push(text.trim());
+            processQueue();
+        }
+
+        function processQueue() {
+            if (isSpeaking || ttsQueue.length === 0) return;
+            isSpeaking = true;
+            var text = ttsQueue.shift();
+
+            initSynthesizer();
+            sendToParent('azure-tts-status', { speaking: true, text: text });
+
+            var ssml = '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">' +
+                '<voice name="en-US-JennyNeural">' +
+                '<prosody rate="+10%">' + escapeXml(text) + '</prosody>' +
+                '</voice></speak>';
+
+            synthesizer.speakSsmlAsync(
+                ssml,
+                function(result) {
+                    isSpeaking = false;
+                    if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+                        sendToParent('azure-tts-status', { speaking: false, text: text });
+                    } else {
+                        sendToParent('azure-tts-status', { speaking: false, error: 'TTS failed' });
+                    }
+                    processQueue();
+                },
+                function(err) {
+                    isSpeaking = false;
+                    sendToParent('azure-tts-status', { speaking: false, error: '' + err });
+                    processQueue();
+                }
+            );
+        }
+
+        function escapeXml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+        }
+
+        function startStreaming() {
+            if (recognizer) return;
+
+            if (!azureToken || !azureRegion) {
+                setStatus('error', 'No Azure credentials');
+                return;
+            }
+
+            setStatus('connecting', 'Connecting to Azure Speech Translation...');
+            initSynthesizer();
+
+            try {
+                var translationConfig = SpeechSDK.SpeechTranslationConfig.fromAuthorizationToken(azureToken, azureRegion);
+                translationConfig.speechRecognitionLanguage = sourceLanguage;
+                translationConfig.addTargetLanguage(targetLanguage);
+
+                var audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+                recognizer = new SpeechSDK.TranslationRecognizer(translationConfig, audioConfig);
+
+                recognizer.recognizing = function(sender, event) {
+                    var sourceText = event.result.text;
+                    var translatedText = event.result.translations.get(targetLanguage);
+                    sendToParent('azure-stream-transcript', {
+                        sourceText: sourceText,
+                        translatedText: translatedText || '',
+                        isFinal: false
+                    });
+                };
+
+                recognizer.recognized = function(sender, event) {
+                    if (event.result.reason === SpeechSDK.ResultReason.TranslatedSpeech) {
+                        var sourceText = event.result.text;
+                        var translatedText = event.result.translations.get(targetLanguage);
+                        sendToParent('azure-stream-transcript', {
+                            sourceText: sourceText,
+                            translatedText: translatedText || '',
+                            isFinal: true
+                        });
+                        if (translatedText) {
+                            speakText(translatedText);
+                        }
+                    }
+                };
+
+                recognizer.canceled = function(sender, event) {
+                    if (event.reason === SpeechSDK.CancellationReason.Error) {
+                        setStatus('error', 'Error: ' + event.errorDetails);
+                        sendToParent('azure-stream-error', { error: event.errorDetails });
+                    } else {
+                        setStatus('idle', 'Recognition ended');
+                    }
+                    cleanup();
+                };
+
+                recognizer.sessionStarted = function() {
+                    setStatus('connected', 'Listening (' + sourceLanguage + ' → English)');
+                };
+
+                recognizer.sessionStopped = function() {
+                    setStatus('idle', 'Session ended');
+                };
+
+                recognizer.startContinuousRecognitionAsync(
+                    function() { },
+                    function(err) {
+                        setStatus('error', 'Start failed: ' + err);
+                        cleanup();
+                    }
+                );
+            } catch (err) {
+                setStatus('error', 'Error: ' + err.message);
+                cleanup();
+            }
+        }
+
+        function stopStreaming() {
+            if (recognizer) {
+                recognizer.stopContinuousRecognitionAsync(
+                    function() {
+                        setStatus('idle', 'Stopped');
+                        cleanup();
+                        sendToParent('azure-stream-stopped', {});
+                    },
+                    function(err) {
+                        console.error('Stop error:', err);
+                        cleanup();
+                    }
+                );
+            }
+        }
+
+        function cleanup() {
+            if (recognizer) {
+                try { recognizer.close(); } catch(e) {}
+                recognizer = null;
+            }
+        }
+    </script>
+</body>
+</html>
+</apex:page>
